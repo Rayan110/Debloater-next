@@ -17,8 +17,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Initialize ShizukuManager – this will handle binding automatically
         ShizukuManager.init(this)
-        ShizukuManager.bindService()  // Attempt to bind (will check permission)
 
         recyclerView = findViewById(R.id.recycler_view)
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private fun getInstalledApps(): List<PackageInfo> {
         val pm = packageManager
         return pm.getInstalledPackages(PackageManager.MATCH_ALL)
-    .filter { it.applicationInfo != null }  // Filter out rare null cases
-    .sortedBy { pm.getApplicationLabel(it.applicationInfo!!).toString() }
+            .filter { it.applicationInfo != null }
+            .sortedBy { pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase() }
     }
 }
