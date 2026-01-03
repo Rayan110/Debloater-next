@@ -19,7 +19,6 @@ object ShizukuManager {
         if (requestCode == REQUEST_CODE) {
             if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(context, "Shizuku permission granted", Toast.LENGTH_SHORT).show()
-                // Bind immediately after permission grant
                 attemptBind()
             } else {
                 Toast.makeText(context, "Shizuku permission denied", Toast.LENGTH_SHORT).show()
@@ -35,7 +34,7 @@ object ShizukuManager {
     private val binderDeadListener = Shizuku.OnBinderDeadListener {
         isBound = false
         debloaterService = null
-        Toast.makeText(context, "Shizuku binder died - restart Shizuku", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Shizuku binder died - please restart Shizuku", Toast.LENGTH_LONG).show()
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -56,10 +55,11 @@ object ShizukuManager {
         Shizuku.UserServiceArgs(
             ComponentName(context.packageName, DebloaterService::class.java.name)
         )
+            .processNameSuffix("service")  // REQUIRED: non-null suffix to avoid the error
             .daemon(false)
-            .debuggable(false)  // Change to true only for debugging
+            .debuggable(false)
             .version(1)
-            .tag("debloater")  // Important: unique tag for identification
+            .tag("debloater")
     }
 
     fun init(context: Context) {
@@ -69,7 +69,6 @@ object ShizukuManager {
         Shizuku.addBinderReceivedListener(binderReceivedListener)
         Shizuku.addBinderDeadListener(binderDeadListener)
 
-        // Initial attempt
         attemptBind()
     }
 
@@ -107,7 +106,7 @@ object ShizukuManager {
     fun uninstall(packageName: String) {
         if (!isBound || debloaterService == null) {
             Toast.makeText(context, "Shizuku not connected - retrying...", Toast.LENGTH_SHORT).show()
-            attemptBind()  // Try to reconnect automatically
+            attemptBind()
             return
         }
 
