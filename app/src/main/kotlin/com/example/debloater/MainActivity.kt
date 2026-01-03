@@ -40,6 +40,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun getInstalledApps(): List<PackageInfo> {
         val pm = packageManager
-        return pm.getInstalledPackages(PackageManager.MATCH_ALL).sortedBy { pm.getApplicationLabel(it.applicationInfo).toString() }
+        return pm.getInstalledPackages(PackageManager.MATCH_ALL)
+    .filter { it.applicationInfo != null }  // Filter out rare null cases
+    .sortedBy { pm.getApplicationLabel(it.applicationInfo!!).toString() }
     }
 }
