@@ -4,6 +4,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,16 +36,31 @@ class AppAdapter(
         val app = apps[position]
         val appInfo = app.applicationInfo!!
 
-        holder.icon.setImageDrawable(appInfo.loadIcon(pm))
-        holder.name.text = appInfo.loadLabel(pm)
+        // Safe icon load
+        var iconDrawable: Drawable? = null
+        try {
+            iconDrawable = appInfo.loadIcon(pm)
+        } catch (e: Exception) {
+            // Fallback: no icon
+        }
+        holder.icon.setImageDrawable(iconDrawable)
+
+        // Safe label
+        var label = app.packageName  // Fallback
+        try {
+            label = pm.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            // Keep package name
+        }
+        holder.name.text = label
         holder.pkg.text = app.packageName
 
-        // System app = orange text
+        // System app highlight
         val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
                        (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
         holder.name.setTextColor(if (isSystem) Color.parseColor("#FF9800") else Color.BLACK)
 
-        // Disabled app = dimmed
+        // Disabled dim
         holder.itemView.alpha = if (appInfo.enabled) 1.0f else 0.5f
 
         holder.uninstallButton.setOnClickListener {
