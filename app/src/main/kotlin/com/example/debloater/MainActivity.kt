@@ -49,3 +49,4 @@ class MainActivity : AppCompatActivity() {
             pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase()
         }
 }
+}
