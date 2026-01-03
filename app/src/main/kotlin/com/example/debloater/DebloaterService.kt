@@ -6,32 +6,36 @@ import java.io.DataOutputStream
 
 class DebloaterService : IDebloaterService.Stub() {
 
-    // Only the empty constructor is required for UserService
-    constructor() : super()
+    // Only a single no-arg constructor is allowed for AIDL Stub in Kotlin
+    // Shizuku will instantiate it directly
+    init {
+        // Optional: any initialization here
+    }
 
     override fun uninstall(packageName: String) {
-        executeAsShell("pm uninstall --user 0 $packageName")
+        executeShellCommand("pm uninstall --user 0 $packageName")
     }
 
     override fun disable(packageName: String) {
-        executeAsShell("pm disable-user --user 0 $packageName")
+        executeShellCommand("pm disable-user --user 0 $packageName")
     }
 
-    private fun executeAsShell(command: String) {
+    private fun executeShellCommand(command: String) {
         try {
-            val p = Runtime.getRuntime().exec("sh")
-            val os = DataOutputStream(p.outputStream)
-            os.writeBytes(command + "\n")
-            os.writeBytes("exit\n")
-            os.flush()
-            os.close()
-            p.waitFor()
+            val process = Runtime.getRuntime().exec("sh")
+            val outputStream = DataOutputStream(process.outputStream)
+            outputStream.writeBytes("$command\n")
+            outputStream.writeBytes("exit\n")
+            outputStream.flush()
+            outputStream.close()
+            process.waitFor()
         } catch (e: Exception) {
-            throw RuntimeException(e)
+            throw RuntimeException("Failed to execute: $command", e)
         }
     }
 
     override fun destroy() {
+        // Cleanly kill the privileged process
         Process.killProcess(Process.myPid())
     }
 }
