@@ -6,7 +6,6 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import android.widget.Toast
 import rikka.shizuku.Shizuku
-import android.content.pm.PackageManager
 
 object ShizukuManager {
 
@@ -16,11 +15,13 @@ object ShizukuManager {
 
     private lateinit var context: Context
 
-    private val requestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
-        if (grantResult == PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(context, "Shizuku permission granted", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Shizuku permission denied", Toast.LENGTH_SHORT).show()
+    private val requestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+        if (requestCode == REQUEST_CODE) {
+            if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(context, "Shizuku permission granted", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Shizuku permission denied", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -34,54 +35,48 @@ object ShizukuManager {
         override fun onServiceDisconnected(name: ComponentName?) {
             debloaterService = null
             isBound = false
-            Toast.makeText(context, "Shizuku service disconnected", Toast.LENGTH_SHORT).show()
         }
     }
 
     fun init(context: Context) {
-        this.context = context
+        this.context = context.applicationContext
         Shizuku.addRequestPermissionResultListener(requestPermissionResultListener)
     }
 
     fun cleanup() {
         Shizuku.removeRequestPermissionResultListener(requestPermissionResultListener)
         if (isBound) {
-            Shizuku.unbindUserService(serviceConnection, true)
+            Shizuku.unbindUserService(serviceArgs(), serviceConnection, true)
             isBound = false
         }
     }
 
+    private fun serviceArgs() = Shizuku.UserServiceArgs(
+        ComponentName(context.packageName, DebloaterService::class.java.name)
+    )
+        .daemon(false)
+        .debuggable(false)
+        .version(1)
+        .tag("debloater")
+
     fun checkAndRequestPermission(): Boolean {
         if (!Shizuku.pingBinder()) {
-            Toast.makeText(context, "Shizuku is not running. Start it first.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Shizuku is not running. Start it first.", Toast.LENGTH_LONG).show()
             return false
         }
 
-        when (Shizuku.checkSelfPermission()) {
-            PackageManager.PERMISSION_GRANTED -> return true
-            else -> {
-                if (Shizuku.shouldShowRequestPermissionRationale()) {
-                    Toast.makeText(context, "Permission denied previously", Toast.LENGTH_SHORT).show()
-                } else {
-                    Shizuku.requestPermission(REQUEST_CODE)
-                }
-                return false
-            }
+        if (Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return true
         }
+
+        Shizuku.requestPermission(REQUEST_CODE)
+        return false
     }
 
     fun bindService() {
         if (!checkAndRequestPermission()) return
 
-        val args = Shizuku.UserServiceArgs(
-            ComponentName(context.packageName, DebloaterService::class.java.name)
-        )
-            .daemon(false)           // Not a long-running daemon
-            .debuggable(false)       // Set true only for debug builds
-            .version(1)
-            .tag("debloater_service")
-
-        Shizuku.bindUserService(args, serviceConnection)
+        Shizuku.bindUserService(serviceArgs(), serviceConnection)
     }
 
     fun uninstall(packageName: String) {
@@ -91,9 +86,9 @@ object ShizukuManager {
         }
         try {
             debloaterService?.uninstall(packageName)
-            Toast.makeText(context, "Uninstall request sent for $packageName", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Uninstall sent for $packageName", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "Uninstall failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Uninstall failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -106,7 +101,7 @@ object ShizukuManager {
             debloaterService?.disable(packageName)
             Toast.makeText(context, "Disabled $packageName", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "Disable failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Disable failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }
