@@ -39,9 +39,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getInstalledApps(): List<PackageInfo> {
-        val pm = packageManager
-        return pm.getInstalledPackages(PackageManager.MATCH_ALL)
-            .filter { it.applicationInfo != null }
-            .sortedBy { pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase() }
-    }
+    val pm = packageManager
+    // Use 0 or MATCH_ALL – both work the same here; 0 is simplest and always returns all with the permission
+    val packages = pm.getInstalledPackages(0)
+
+    return packages
+        .filter { it.applicationInfo != null }  // Safety filter (rare null cases)
+        .sortedBy { 
+            pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase()
+        }
 }
