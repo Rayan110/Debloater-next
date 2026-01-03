@@ -63,23 +63,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadApps() {
-        allApps = pm.getInstalledPackages(0)
-            .filter { it.applicationInfo != null }
-            .sortedBy { pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase() }
+        try {
+            allApps = pm.getInstalledPackages(0)
+                .filter { pkg ->
+                    pkg.applicationInfo != null &&  // Skip null
+                    try {
+                        pkg.applicationInfo!!.loadLabel(pm).isNotEmpty()  // Skip if label fails
+                    } catch (e: Exception) {
+                        false
+                    }
+                }
+                .sortedBy { 
+                    try {
+                        pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase()
+                    } catch (e: Exception) {
+                        it.packageName.lowercase()  // Fallback to package name
+                    }
+                }
 
-        adapter.updateApps(allApps)
-        filterApps(searchView.query.toString()) // Preserve current search
+            adapter.updateApps(allApps)
+            filterApps(searchView.query?.toString().orEmpty())
+        } catch (e: Exception) {
+            // Rare full failure – show empty list safely
+            allApps = emptyList()
+            adapter.updateApps(allApps)
+        }
     }
 
     private fun filterApps(query: String) {
         val lowerQuery = query.lowercase()
-        val filtered = if (query.isEmpty()) {
+        val filtered = if (query.isBlank()) {
             allApps
         } else {
-            allApps.filter {
-                val label = pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase()
-                val pkg = it.packageName.lowercase()
-                label.contains(lowerQuery) || pkg.contains(lowerQuery)
+            allApps.filter { pkg ->
+                val appInfo = pkg.applicationInfo!!
+                val label = try { pm.getApplicationLabel(appInfo).toString().lowercase() } catch (e: Exception) { "" }
+                val pkgName = pkg.packageName.lowercase()
+                label.contains(lowerQuery) || pkgName.contains(lowerQuery)
             }
         }
         adapter.updateApps(filtered)
@@ -88,7 +108,7 @@ class MainActivity : AppCompatActivity() {
     private fun refreshList() {
         Handler(Looper.getMainLooper()).postDelayed({
             loadApps()
-        }, 1000) // 1 second delay for system to update
+        }, 1200)  // Slightly longer delay for system changes
     }
 
     override fun onDestroy() {
