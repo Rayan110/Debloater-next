@@ -1,30 +1,45 @@
 package com.example.debloater
 
 import android.content.Context
-import android.content.pm.PackageManager
+import android.os.ParcelFileDescriptor
+import android.util.Log
 import com.example.debloater.IDebloaterService
+import rikka.shizuku.SystemServiceHelper
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.PrintWriter
 
 class DebloaterService : IDebloaterService.Stub() {
 
-    private lateinit var context: Context
-
-    constructor() : super() // Required empty constructor
-
-    constructor(context: Context) : super() {
-        this.context = context
-    }
+    // Only empty constructor is required. Shizuku provides privileged context automatically.
+    private val context: Context
+        get() = getApplicationContext()
 
     override fun uninstall(packageName: String) {
-        // Equivalent to "pm uninstall --user 0" (safe for system apps via Shizuku ADB)
-        context.packageManager.packageInstaller.uninstall(packageName, null)
+        executeShellCommand("pm uninstall --user 0 $packageName")
     }
 
     override fun disable(packageName: String) {
-        context.packageManager.setApplicationEnabledSetting(
-            packageName,
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,
-            0
-        )
+        // Disable without killing the app
+        executeShellCommand("pm disable-user --user 0 $packageName")
+    }
+
+    private fun executeShellCommand(command: String) {
+        try {
+            val pfd = SystemServiceHelper.getSystemService("package")
+                .openFileDescriptor("sh", "w") // Open shell for writing
+
+            ParcelFileDescriptor.AutoCloseOutputStream(FileOutputStream(pfd.fileDescriptor)).use { os ->
+                PrintWriter(os).use { writer ->
+                    writer.println(command)
+                    writer.println("exit")
+                    writer.flush()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("DebloaterService", "Failed to execute command: $command", e)
+            throw e
+        }
     }
 
     override fun destroy() {
