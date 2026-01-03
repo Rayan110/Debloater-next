@@ -1,0 +1,6 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Theme.Debloater" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Customize if you want, but this works out of the box -->
+    </style>
+</resources>
