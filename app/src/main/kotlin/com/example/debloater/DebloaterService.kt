@@ -1,44 +1,46 @@
 package com.example.debloater
 
 import android.content.Context
-import android.os.ParcelFileDescriptor
-import android.util.Log
+import android.content.pm.IPackageManager
+import android.os.RemoteException
 import com.example.debloater.IDebloaterService
 import rikka.shizuku.SystemServiceHelper
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.PrintWriter
 
 class DebloaterService : IDebloaterService.Stub() {
 
-    // Only empty constructor is required. Shizuku provides privileged context automatically.
-    private val context: Context
-        get() = getApplicationContext()
+    // Support both new (v13+) and old Shizuku versions
+    constructor() : super()
+
+    constructor(context: Context) : super() {
+        // Context is provided by Shizuku v13+, but we don't need it here
+    }
+
+    private val packageManager: IPackageManager by lazy {
+        IPackageManager.Stub.asInterface(SystemServiceHelper.getSystemService("package"))
+    }
 
     override fun uninstall(packageName: String) {
-        executeShellCommand("pm uninstall --user 0 $packageName")
+        try {
+            // pm uninstall --user 0 <package>
+            packageManager.deletePackageAsUser(packageName, 0, 0)
+            // Alternative if above fails on some ROMs: packageManager.getPackageInstaller().uninstall(packageName, null)
+        } catch (e: RemoteException) {
+            throw RuntimeException(e)
+        }
     }
 
     override fun disable(packageName: String) {
-        // Disable without killing the app
-        executeShellCommand("pm disable-user --user 0 $packageName")
-    }
-
-    private fun executeShellCommand(command: String) {
         try {
-            val pfd = SystemServiceHelper.getSystemService("package")
-                .openFileDescriptor("sh", "w") // Open shell for writing
-
-            ParcelFileDescriptor.AutoCloseOutputStream(FileOutputStream(pfd.fileDescriptor)).use { os ->
-                PrintWriter(os).use { writer ->
-                    writer.println(command)
-                    writer.println("exit")
-                    writer.flush()
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("DebloaterService", "Failed to execute command: $command", e)
-            throw e
+            // pm disable-user --user 0 <package>
+            packageManager.setApplicationEnabledSetting(
+                packageName,
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,
+                0,
+                0,  // user 0
+                null
+            )
+        } catch (e: RemoteException) {
+            throw RuntimeException(e)
         }
     }
 
