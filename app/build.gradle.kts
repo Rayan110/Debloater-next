@@ -61,6 +61,7 @@ dependencies {
 
     // Coroutines for Snackbar
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")  // Latest Coil for Compose (Jan 2026)
 
     // Shizuku
     implementation("dev.rikka.shizuku:api:13.1.5")
