@@ -2,7 +2,6 @@ package com.example.debloater
 
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,13 +15,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painting.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Size
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.nativeCanvas
+import coil.compose.rememberAsyncImagePainter  // Best way to display Drawable in Compose
 
 class MainActivity : ComponentActivity() {
 
@@ -59,13 +54,13 @@ fun DebloaterTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> darkColorScheme
-        else -> lightColorScheme
+        darkTheme -> darkColorScheme()  // Added missing ()
+        else -> lightColorScheme()      // Added missing ()
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = Typography(),  // Correct: Material3 default typography
         content = content
     )
 }
@@ -99,10 +94,15 @@ fun DebloaterScreen(snackbarHostState: SnackbarHostState) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(apps) { app ->
-                AppCard(app, pm, onDisable = { ShizukuManager.disable(it) }) { pkg ->
-                    selectedPackage = pkg
-                    showConfirmUninstall = true
-                }
+                AppCard(
+                    app = app,
+                    pm = pm,
+                    onDisable = { ShizukuManager.disable(it) },
+                    onUninstall = { pkg ->
+                        selectedPackage = pkg
+                        showConfirmUninstall = true
+                    }
+                )
             }
         }
     }
@@ -143,11 +143,8 @@ fun AppCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSystem) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = if (isSystem) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -156,9 +153,14 @@ fun AppCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val icon: Drawable? = try { appInfo.loadIcon(pm) } catch (e: Exception) { null }
+            val iconDrawable = try {
+                appInfo.loadIcon(pm)
+            } catch (e: Exception) {
+                null
+            }
+
             Image(
-                painter = rememberDrawablePainter(icon),
+                painter = rememberAsyncImagePainter(iconDrawable),
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
@@ -169,15 +171,13 @@ fun AppCard(
                 Text(
                     text = try { appInfo.loadLabel(pm).toString() } catch (e: Exception) { app.packageName },
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth()
+                    maxLines = 1
                 )
                 Text(
                     text = app.packageName,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth()
+                    maxLines = 1
                 )
             }
 
@@ -190,25 +190,6 @@ fun AppCard(
                 }
                 Button(onClick = { onUninstall(app.packageName) }) {
                     Text("Uninstall")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun rememberDrawablePainter(drawable: Drawable?): Painter {
-    return remember(drawable) {
-        object : Painter() {
-            override val intrinsicSize: Size = Size(
-                drawable?.intrinsicWidth?.toFloat() ?: 0f,
-                drawable?.intrinsicHeight?.toFloat() ?: 0f
-            )
-
-            override fun DrawScope.onDraw() {
-                drawIntoCanvas { canvas ->
-                    drawable?.bounds = android.graphics.Rect(0, 0, size.width.toInt(), size.height.toInt())
-                    drawable?.draw(canvas.nativeCanvas)
                 }
             }
         }
