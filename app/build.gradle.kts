@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0"  // Current stable as of January 2026
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0"
 }
 
 android {
@@ -38,6 +38,10 @@ kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
     }
+}
+
+composeCompiler {
+    sourceInformation.set(false)  // Fixes the "multiple values" error
 }
 
 dependencies {
