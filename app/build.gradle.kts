@@ -41,7 +41,7 @@ kotlin {
 }
 
 composeCompiler {
-    sourceInformation.set(false)  // Fixes the "multiple values" error
+    includeSourceInformation.set(false)  // Fixes the "multiple values" error
 }
 
 dependencies {
