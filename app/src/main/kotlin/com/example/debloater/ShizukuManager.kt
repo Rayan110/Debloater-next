@@ -5,6 +5,11 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.widget.Toast
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 
 object ShizukuManager {
@@ -15,39 +20,53 @@ object ShizukuManager {
 
     private lateinit var context: Context
 
+    private val scope = CoroutineScope(Dispatchers.Main)
+
+    private var snackbarHostState: SnackbarHostState? = null
+
+    fun setSnackbarHostState(hostState: SnackbarHostState) {
+        snackbarHostState = hostState
+    }
+
+    private fun showMessage(msg: String, duration: SnackbarDuration = SnackbarDuration.Short) {
+        scope.launch {
+            snackbarHostState?.showSnackbar(msg, duration = duration) ?: Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private val requestPermissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
         if (requestCode == REQUEST_CODE) {
             if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(context, "Shizuku permission granted", Toast.LENGTH_SHORT).show()
+                showMessage("Shizuku permission granted")
                 attemptBind()
             } else {
-                Toast.makeText(context, "Shizuku permission denied", Toast.LENGTH_SHORT).show()
+                showMessage("Shizuku permission denied")
             }
         }
     }
 
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
-        Toast.makeText(context, "Shizuku binder received", Toast.LENGTH_SHORT).show()
+        showMessage("Shizuku binder received")
         attemptBind()
     }
 
     private val binderDeadListener = Shizuku.OnBinderDeadListener {
         isBound = false
         debloaterService = null
-        Toast.makeText(context, "Shizuku binder died - please restart Shizuku", Toast.LENGTH_LONG).show()
+        showMessage("Shizuku binder died - restart Shizuku", SnackbarDuration.Long)
     }
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             debloaterService = IDebloaterService.Stub.asInterface(service)
             isBound = true
-            Toast.makeText(context, "Shizuku service connected successfully!", Toast.LENGTH_LONG).show()
+            showMessage("Shizuku service connected successfully!", SnackbarDuration.Long)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
             debloaterService = null
             isBound = false
-            Toast.makeText(context, "Shizuku service disconnected", Toast.LENGTH_SHORT).show()
+            showMessage("Shizuku service disconnected")
         }
     }
 
@@ -55,7 +74,7 @@ object ShizukuManager {
         Shizuku.UserServiceArgs(
             ComponentName(context.packageName, DebloaterService::class.java.name)
         )
-            .processNameSuffix("service")  // REQUIRED: non-null suffix to avoid the error
+            .processNameSuffix("service")
             .daemon(false)
             .debuggable(false)
             .version(1)
@@ -87,7 +106,7 @@ object ShizukuManager {
         if (isBound) return
 
         if (!Shizuku.pingBinder()) {
-            Toast.makeText(context, "Shizuku is not running", Toast.LENGTH_LONG).show()
+            showMessage("Shizuku is not running", SnackbarDuration.Long)
             return
         }
 
@@ -99,37 +118,37 @@ object ShizukuManager {
         try {
             Shizuku.bindUserService(userServiceArgs.value, serviceConnection)
         } catch (e: Exception) {
-            Toast.makeText(context, "Bind failed: ${e.message}", Toast.LENGTH_LONG).show()
+            showMessage("Bind failed: ${e.message}", SnackbarDuration.Long)
         }
     }
 
     fun uninstall(packageName: String) {
         if (!isBound || debloaterService == null) {
-            Toast.makeText(context, "Shizuku not connected - retrying...", Toast.LENGTH_SHORT).show()
+            showMessage("Shizuku not connected - retrying...")
             attemptBind()
             return
         }
 
         try {
             debloaterService?.uninstall(packageName)
-            Toast.makeText(context, "Uninstall command sent: $packageName", Toast.LENGTH_SHORT).show()
+            showMessage("Uninstall command sent: $packageName")
         } catch (e: Exception) {
-            Toast.makeText(context, "Uninstall failed: ${e.message}", Toast.LENGTH_LONG).show()
+            showMessage("Uninstall failed: ${e.message}", SnackbarDuration.Long)
         }
     }
 
     fun disable(packageName: String) {
         if (!isBound || debloaterService == null) {
-            Toast.makeText(context, "Shizuku not connected - retrying...", Toast.LENGTH_SHORT).show()
+            showMessage("Shizuku not connected - retrying...")
             attemptBind()
             return
         }
 
         try {
             debloaterService?.disable(packageName)
-            Toast.makeText(context, "Disable command sent: $packageName", Toast.LENGTH_SHORT).show()
+            showMessage("Disable command sent: $packageName")
         } catch (e: Exception) {
-            Toast.makeText(context, "Disable failed: ${e.message}", Toast.LENGTH_LONG).show()
+            showMessage("Disable failed: ${e.message}", SnackbarDuration.Long)
         }
     }
 }
