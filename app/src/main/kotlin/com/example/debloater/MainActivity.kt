@@ -16,7 +16,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialize Shizuku – it will handle binding automatically
         ShizukuManager.init(this)
 
         recyclerView = findViewById(R.id.recycler_view)
@@ -41,7 +40,7 @@ class MainActivity : AppCompatActivity() {
         val pm = packageManager
         return pm.getInstalledPackages(PackageManager.MATCH_ALL)
             .filter { it.applicationInfo != null }
-            .sortedBy {
+            .sortedBy { 
                 pm.getApplicationLabel(it.applicationInfo!!).toString().lowercase()
             }
     }
