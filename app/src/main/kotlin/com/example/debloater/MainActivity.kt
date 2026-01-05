@@ -17,8 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter  // Best way to display Drawable in Compose
+import coil.compose.rememberAsyncImagePainter  // Requires Coil dependency
 
+@OptIn(ExperimentalMaterial3Api::class)  // Suppresses the experimental warnings
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,13 +55,13 @@ fun DebloaterTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> darkColorScheme()  // Added missing ()
-        else -> lightColorScheme()      // Added missing ()
+        darkTheme -> darkColorScheme()
+        else -> lightColorScheme()
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography(),  // Correct: Material3 default typography
+        typography = Typography(),
         content = content
     )
 }
