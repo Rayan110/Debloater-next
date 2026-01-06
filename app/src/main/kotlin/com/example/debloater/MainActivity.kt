@@ -92,25 +92,25 @@ fun DebloaterScreen(snackbarHostState: SnackbarHostState) {
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-            state = listState,
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(apps, key = { it.packageName }) { app ->
-                AppCard(
-                    app = app,
-                    pm = pm,
-                    onDisable = { ShizukuManager.disable(it) },
-                    onUninstall = { pkg ->
-                        selectedPackage = pkg
-                        showConfirmUninstall = true
-                    }
-                )
+    state = listState,
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(paddingValues),
+    contentPadding = PaddingValues(8.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp)
+) {
+    items(apps, key = { it.packageName }) { app ->
+        AppCard(
+            app = app,
+            pm = pm,
+            onDisable = { ShizukuManager.disable(it) },
+            onUninstall = { pkg ->
+                selectedPackage = pkg
+                showConfirmUninstall = true
             }
-        }
+        )
+    }
+}
     }
 
     if (showConfirmUninstall) {
