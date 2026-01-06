@@ -97,17 +97,17 @@ fun DebloaterScreen(snackbarHostState: SnackbarHostState) {
             contentPadding = PaddingValues(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(apps) { app ->
-                AppCard(
-                    app = app,
-                    pm = pm,
-                    onDisable = { ShizukuManager.disable(it) },
-                    onUninstall = { pkg ->
-                        selectedPackage = pkg
-                        showConfirmUninstall = true
-                    }
-                )
-            }
+            items(apps, key = { it.packageName }) { app ->
+    AppCard(
+        app = app,
+        pm = pm,
+        onDisable = { ShizukuManager.disable(it) },
+        onUninstall = { pkg ->
+            selectedPackage = pkg
+            showConfirmUninstall = true
+        }
+    )
+}
         }
     }
 
