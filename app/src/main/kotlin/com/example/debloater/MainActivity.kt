@@ -13,6 +13,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.animateItemPlacement
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,10 +146,9 @@ fun AppCard(
             (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSystem) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
-        )
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateItemPlacement()  // Smooth entry/exit animation when list changes
     ) {
         Row(
             modifier = Modifier
@@ -156,14 +156,19 @@ fun AppCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val iconDrawable = try {
-                appInfo.loadIcon(pm)
-            } catch (e: Exception) {
-                null
-            }
+            // Async icon loading with key to avoid reloading on every recomposition
+            val iconPainter = rememberAsyncImagePainter(
+                model = remember(app.packageName) {
+                    try {
+                        appInfo.loadIcon(pm)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            )
 
             Image(
-                painter = rememberAsyncImagePainter(iconDrawable),
+                painter = iconPainter,
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
@@ -171,8 +176,17 @@ fun AppCard(
             )
 
             Column(modifier = Modifier.weight(1f)) {
+                // Cache label to avoid repeated PM calls
+                val appName = remember(app.packageName) {
+                    try {
+                        appInfo.loadLabel(pm).toString()
+                    } catch (e: Exception) {
+                        app.packageName
+                    }
+                }
+
                 Text(
-                    text = try { appInfo.loadLabel(pm).toString() } catch (e: Exception) { app.packageName },
+                    text = appName,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1
                 )
