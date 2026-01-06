@@ -13,6 +13,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -72,6 +74,7 @@ fun DebloaterScreen(snackbarHostState: SnackbarHostState) {
     val context = LocalContext.current
     val pm = context.packageManager
     val apps by remember { mutableStateOf(getInstalledApps(pm)) }
+    val listState = rememberLazyListState()
 
     var showConfirmUninstall by remember { mutableStateOf(false) }
     var selectedPackage by remember { mutableStateOf<String?>(null) }
@@ -90,6 +93,7 @@ fun DebloaterScreen(snackbarHostState: SnackbarHostState) {
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
+            state = listState,
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(8.dp),
@@ -140,13 +144,33 @@ fun AppCard(
 ) {
     val appInfo = app.applicationInfo ?: return
 
+    // ✅ HARD CACHED — computed once per package
+    val appName = rememberSaveable(app.packageName) {
+        try {
+            appInfo.loadLabel(pm).toString()
+        } catch (e: Exception) {
+            app.packageName
+        }
+    }
+
+    val appIcon = remember(app.packageName) {
+        try {
+            appInfo.loadIcon(pm)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     val isSystem = (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0 ||
             (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
 
     Card(
-        modifier = Modifier.fillMaxWidth(),  // Removed animateItemPlacement() — no longer available
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSystem) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+            containerColor = if (isSystem)
+                MaterialTheme.colorScheme.surfaceVariant
+            else
+                MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -155,18 +179,10 @@ fun AppCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val iconPainter = rememberAsyncImagePainter(
-                model = remember(app.packageName) {
-                    try {
-                        appInfo.loadIcon(pm)
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-            )
 
+            // ✅ NO binder calls during scroll anymore
             Image(
-                painter = iconPainter,
+                painter = rememberAsyncImagePainter(appIcon),
                 contentDescription = null,
                 modifier = Modifier
                     .size(48.dp)
@@ -174,14 +190,6 @@ fun AppCard(
             )
 
             Column(modifier = Modifier.weight(1f)) {
-                val appName = remember(app.packageName) {
-                    try {
-                        appInfo.loadLabel(pm).toString()
-                    } catch (e: Exception) {
-                        app.packageName
-                    }
-                }
-
                 Text(
                     text = appName,
                     style = MaterialTheme.typography.titleMedium,
