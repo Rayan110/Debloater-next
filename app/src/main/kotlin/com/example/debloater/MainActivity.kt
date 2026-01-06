@@ -13,7 +13,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.animateItemPlacement
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,9 +144,10 @@ fun AppCard(
             (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateItemPlacement()  // Smooth animation — stable API, no opt-in needed
+        modifier = Modifier.fillMaxWidth(),  // Removed animateItemPlacement() — no longer available
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSystem) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+        )
     ) {
         Row(
             modifier = Modifier
