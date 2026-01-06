@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.animation.animateItemPlacement
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.layout.animateItemPlacement
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -133,6 +135,7 @@ fun DebloaterScreen(snackbarHostState: SnackbarHostState) {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppCard(
     app: PackageInfo,
